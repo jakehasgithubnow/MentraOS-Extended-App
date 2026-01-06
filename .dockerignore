@@ -1,0 +1,7 @@
+.env
+node_modules
+recordings
+public/tts_history
+.git
+.DS_Store
+emulator
