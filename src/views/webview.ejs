@@ -3,21 +3,262 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MentraOS Example App</title>
+    <title>MentraOS Response Generator</title>
     <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .ai-options {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .ai-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            text-align: left;
+            transition: transform 0.1s;
+        }
+        .ai-btn:active {
+            transform: scale(0.98);
+        }
+        .ai-btn.selected {
+            border: 3px solid #2196F3;
+            box-shadow: 0 0 10px rgba(33, 150, 243, 0.5);
+            background-color: #388E3C;
+        }
+        #respond-btn {
+            width: 100%;
+            padding: 15px;
+            font-weight: bold;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        #last-trans-msg {
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #2196F3;
+        }
+        .status-section {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>MentraOS Example App</h1>
+            <h1>Response Generator</h1>
+            <p style="font-size: 0.8rem; color: #888;">Logged in: <%= userId %></p>
         </header>
-        <div class="instructions">
-            <% if (userId) { %>
-                <p>Logged in as: <span class="user-id"><%= userId %></span></p>
-            <% } else { %>
-                <p>Not logged in</p>
-            <% } %>
+
+        <div class="control-panel">
+            <div style="margin-bottom: 20px;">
+                <label for="lang-select" style="font-size: 0.9rem; color: #666; display: block; margin-bottom: 5px;">Target Language:</label>
+                <select id="lang-select" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ccc; font-size: 1rem;">
+                    <option value="english" data-code="en">English</option>
+                    <option value="ukrainian" data-code="uk">Ukrainian</option>
+                    <option value="spanish" data-code="es">Spanish</option>
+                    <option value="french" data-code="fr">French</option>
+                    <option value="german" data-code="de">German</option>
+                    <option value="italian" data-code="it">Italian</option>
+                    <option value="polish" data-code="pl">Polish</option>
+                    <option value="portuguese" data-code="pt">Portuguese</option>
+                    <option value="dutch" data-code="nl">Dutch</option>
+                    <option value="russian" data-code="ru">Russian</option>
+                    <option value="japanese" data-code="ja">Japanese</option>
+                    <option value="chinese" data-code="zh">Chinese</option>
+                    <option value="korean" data-code="ko">Korean</option>
+                </select>
+            </div>
+
+            <div id="last-trans-msg">Waiting for translation...</div>
+            
+            <button id="respond-btn" style="display: none;">
+                GENERATE RESPONSES
+            </button>
+
+            <div id="options-container" class="ai-options">
+                <!-- AI Generated buttons will appear here -->
+            </div>
+
+            <div class="status-section">
+                <div id="debug-log">Ready</div>
+                <p id="status-msg"></p>
+            </div>
         </div>
     </div>
+
+    <script>
+        const respondBtn = document.getElementById('respond-btn');
+        const lastTransMsg = document.getElementById('last-trans-msg');
+        const optionsContainer = document.getElementById('options-container');
+        const debugLog = document.getElementById('debug-log');
+        const statusMsg = document.getElementById('status-msg');
+        const langSelect = document.getElementById('lang-select');
+
+        let currentOptions = [];
+        let lastText = "";
+        let currentLang = "";
+
+        function logDebug(msg) {
+            const time = new Date().toLocaleTimeString().split(' ')[0];
+            debugLog.innerText = `[${time}] ${msg}`;
+        }
+
+        langSelect.onchange = async () => {
+            const selectedOption = langSelect.options[langSelect.selectedIndex];
+            const language = selectedOption.value;
+            const code = selectedOption.getAttribute('data-code');
+            
+            logDebug(`Changing to ${language}...`);
+            try {
+                const response = await fetch('/set-language', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: '<%= userId %>', language, code })
+                });
+                if (response.ok) {
+                    currentLang = language;
+                    logDebug(`Language: ${language}`);
+                } else {
+                    logDebug('Error setting lang');
+                }
+            } catch (e) {
+                logDebug('Error: ' + e.message);
+            }
+        };
+
+        respondBtn.onclick = async () => {
+            logDebug('Generating...');
+            respondBtn.innerText = 'GENERATING...';
+            respondBtn.disabled = true;
+            try {
+                const response = await fetch('/generate-responses-manual', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: '<%= userId %>' })
+                });
+                if (response.ok) {
+                    logDebug('Request sent');
+                } else {
+                    logDebug('Error: ' + response.status);
+                    respondBtn.disabled = false;
+                    respondBtn.innerText = 'GENERATE RESPONSES';
+                }
+            } catch (e) {
+                logDebug('Error: ' + e.message);
+                respondBtn.disabled = false;
+                respondBtn.innerText = 'GENERATE RESPONSES';
+            }
+        };
+
+        async function sendSelection(option) {
+            statusMsg.innerText = 'Sending: ' + option;
+            try {
+                const response = await fetch('/user-selection', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selection: option, userId: '<%= userId %>' })
+                });
+                if (response.ok) {
+                    statusMsg.innerText = '✅ Sent: ' + option;
+                    statusMsg.style.color = '#4CAF50';
+                }
+            } catch (err) {
+                logDebug('Send Error');
+            }
+        }
+
+        function renderOptions(options) {
+            optionsContainer.innerHTML = '';
+            options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'ai-btn';
+                if (index === 0) {
+                    btn.classList.add('selected');
+                }
+                // Display English summary
+                btn.innerText = opt.english || opt; 
+                // Send actual text (Target Language)
+                btn.onclick = () => {
+                    // Remove selected class from all buttons
+                    document.querySelectorAll('.ai-btn').forEach(b => b.classList.remove('selected'));
+                    // Add selected class to the clicked button
+                    btn.classList.add('selected');
+                    sendSelection(opt.text || opt);
+                };
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function updateState(data) {
+            if (data.success) {
+                // Update Language Selector if changed elsewhere
+                if (data.targetLanguage && data.targetLanguage !== currentLang) {
+                    currentLang = data.targetLanguage;
+                    langSelect.value = currentLang;
+                    logDebug(`Lang synced: ${currentLang}`);
+                }
+
+                // Update Text
+                if (data.lastText !== lastText) {
+                    lastText = data.lastText;
+                    lastTransMsg.innerText = lastText || "Waiting for translation...";
+                    
+                    if (lastText) {
+                        respondBtn.style.display = 'block';
+                        respondBtn.disabled = false;
+                        respondBtn.innerText = 'GENERATE RESPONSES';
+                        logDebug('New translation');
+                    } else {
+                        respondBtn.style.display = 'none';
+                        logDebug('Text expired');
+                    }
+                }
+
+                // Update Options
+                if (data.options && data.options.length > 0) {
+                    if (JSON.stringify(currentOptions) !== JSON.stringify(data.options)) {
+                        currentOptions = data.options;
+                        renderOptions(currentOptions);
+                        logDebug('Options updated');
+                        respondBtn.innerText = 'REGENERATE RESPONSES';
+                        respondBtn.disabled = false;
+                    }
+                } else if (currentOptions.length > 0) {
+                        currentOptions = [];
+                        optionsContainer.innerHTML = '';
+                        logDebug('Options cleared');
+                }
+            }
+        }
+
+        const evtSource = new EventSource(`/events?userId=<%= userId %>`);
+        evtSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                updateState(data);
+            } catch (e) {
+                console.error('SSE Error', e);
+            }
+        };
+
+        evtSource.onerror = (err) => {
+            logDebug('SSE Conn lost. Polling fallback.');
+            console.warn('SSE Error', err);
+        };
+    </script>
 </body>
 </html>

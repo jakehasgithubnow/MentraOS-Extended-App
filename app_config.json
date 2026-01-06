@@ -12,6 +12,12 @@
       "key": "show_live_transcription",
       "label": "Show live transcription",
       "defaultValue": true
+    },
+    {
+      "type": "toggle",
+      "key": "audio_recording",
+      "label": "Record Microphone Audio",
+      "defaultValue": false
     }
   ],
   "tools": [
@@ -22,7 +28,38 @@
         "my tool name",
         "use my tool"
       ],
-      "parameters": { }
+      "parameters": {}
+    },
+    {
+      "id": "start_recording",
+      "description": "Start recording microphone audio",
+      "activationPhrases": [
+        "start recording"
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "stop_recording",
+      "description": "Stop recording microphone audio",
+      "activationPhrases": [
+        "stop recording"
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "android_control",
+      "description": "Cycle or select the currently highlighted option (used by Android companion app)",
+      "activationPhrases": [],
+      "parameters": {
+        "action": {
+          "type": "string",
+          "description": "cycle or select"
+        },
+        "direction": {
+          "type": "string",
+          "description": "up or down (only for cycle)"
+        }
+      }
     }
   ]
 }

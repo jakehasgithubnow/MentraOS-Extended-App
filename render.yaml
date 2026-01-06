@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mentraos-assistant
+    runtime: docker
+    envVars:
+      - key: PORT
+        value: 3000
+      - key: PACKAGE_NAME
+        sync: false
+      - key: MENTRAOS_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: SPEECHMATICS_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ANDROID_WEBHOOK_URL
+        sync: false
+    healthCheckPath: /health
