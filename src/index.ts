@@ -173,6 +173,7 @@ class ExampleMentraOSApp extends AppServer {
     };
 
     let lastDisplayedText = "";
+    let lastSpeakerId = "";
 
     const processTranscription = async (transcript: string, isFinal: boolean, speakerId?: string) => {
       if (isSessionClosed || !transcript || !transcript.trim()) return;
@@ -203,7 +204,7 @@ class ExampleMentraOSApp extends AppServer {
           if (isEnglishToEnglish) {
             translation = sourceToTranslate; 
             if (!isFinal) {
-              const displayWithSpeaker = speakerId ? `[${speakerId}] ${translation}` : translation;
+              const displayWithSpeaker = (speakerId && speakerId !== lastSpeakerId) ? `[${speakerId}] ${translation}` : translation;
               await updateDisplayWithLog(persistentGlassContent, displayWithSpeaker);
             }
           } else {
@@ -254,7 +255,7 @@ Context: ${contextStr}` },
                   let displayText = persistentGlassContent;
                   if (fullContent.trim()) {
                       if (displayText) displayText += " ";
-                      const displayInterim = speakerId ? `[${speakerId}] ${fullContent.trim()}` : fullContent.trim();
+                      const displayInterim = (speakerId && speakerId !== lastSpeakerId) ? `[${speakerId}] ${fullContent.trim()}` : fullContent.trim();
                       displayText += displayInterim;
                   }
                   
@@ -298,8 +299,9 @@ Context: ${contextStr}` },
               
               if (finalThought.trim()) {
                   if (persistentGlassContent) persistentGlassContent += " ";
-                  const displayFinal = speakerId ? `[${speakerId}] ${finalThought.trim()}` : finalThought.trim();
+                  const displayFinal = (speakerId && speakerId !== lastSpeakerId) ? `[${speakerId}] ${finalThought.trim()}` : finalThought.trim();
                   persistentGlassContent += displayFinal;
+                  if (speakerId) lastSpeakerId = speakerId;
               }
 
               if (persistentGlassContent.length > MAX_DISPLAY_CHARS * 2) {
