@@ -479,6 +479,8 @@ Context: ${contextStr}` },
       // Clear logs
       translationLog = [];
       pendingSource = "";
+      persistentGlassContent = "";
+      lastSpeakerId = "";
       updateDisplayWithLog("", text);
 
       if (responseTimeout) { clearTimeout(responseTimeout); responseTimeout = null; }
@@ -834,6 +836,8 @@ ${baseInstructions}`;
       }
       translationLog = [];
       pendingSource = "";
+      persistentGlassContent = "";
+      lastSpeakerId = "";
       
       // Immediately go back to listening display
       setTimeout(() => {
@@ -928,6 +932,8 @@ ${baseInstructions}`;
         // Update variables and display
         translationLog = [];
         pendingSource = "";
+        persistentGlassContent = "";
+        lastSpeakerId = "";
         updateDisplayWithLog("", "");
       }
     }, 2000);
