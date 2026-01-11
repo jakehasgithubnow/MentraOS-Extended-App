@@ -174,10 +174,11 @@ class ExampleMentraOSApp extends AppServer {
 
     let lastDisplayedText = "";
 
-    const processTranscription = async (transcript: string, isFinal: boolean) => {
+    const processTranscription = async (transcript: string, isFinal: boolean, speakerId?: string) => {
       if (isSessionClosed || !transcript || !transcript.trim()) return;
 
-      console.log(`[Speechmatics] [${userId}] RAW: "${transcript}" (isFinal=${isFinal})`);
+      const speakerLabel = speakerId ? `[${speakerId}] ` : "";
+      console.log(`[Speechmatics] [${userId}] RAW: ${speakerLabel}"${transcript}" (isFinal=${isFinal})`);
 
       const now = Date.now();
       const shouldTranslate = isFinal || (transcript.trim().split(" ").length > 4 && (now - lastInterimTranslationTime > 1200));
@@ -202,7 +203,8 @@ class ExampleMentraOSApp extends AppServer {
           if (isEnglishToEnglish) {
             translation = sourceToTranslate; 
             if (!isFinal) {
-              await updateDisplayWithLog(persistentGlassContent, translation);
+              const displayWithSpeaker = speakerId ? `[${speakerId}] ${translation}` : translation;
+              await updateDisplayWithLog(persistentGlassContent, displayWithSpeaker);
             }
           } else {
             const contextStr = conversationContext.map(m => 
@@ -252,7 +254,8 @@ Context: ${contextStr}` },
                   let displayText = persistentGlassContent;
                   if (fullContent.trim()) {
                       if (displayText) displayText += " ";
-                      displayText += fullContent.trim();
+                      const displayInterim = speakerId ? `[${speakerId}] ${fullContent.trim()}` : fullContent.trim();
+                      displayText += displayInterim;
                   }
                   
                   if (displayText.length > MAX_DISPLAY_CHARS) {
@@ -279,9 +282,11 @@ Context: ${contextStr}` },
 
           if (isFinal) {
               const finalThought = isEnglishToEnglish ? sourceToTranslate : translation;
+              const contextWithSpeaker = speakerId ? `${speakerId}: ${finalThought}` : finalThought;
+              
               conversationContext.push({ 
                 role: "user", 
-                content: finalThought
+                content: contextWithSpeaker
               });
 
               if (conversationContext.length > 15) {
@@ -293,7 +298,8 @@ Context: ${contextStr}` },
               
               if (finalThought.trim()) {
                   if (persistentGlassContent) persistentGlassContent += " ";
-                  persistentGlassContent += finalThought.trim();
+                  const displayFinal = speakerId ? `[${speakerId}] ${finalThought.trim()}` : finalThought.trim();
+                  persistentGlassContent += displayFinal;
               }
 
               if (persistentGlassContent.length > MAX_DISPLAY_CHARS * 2) {
@@ -380,15 +386,22 @@ Context: ${contextStr}` },
       
       smClient.addEventListener("receiveMessage", (event: any) => {
         const message = event.data;
-        if (message.message === "AddTranscript") {
+        if (message.message === "AddTranscript" || message.message === "AddPartialTranscript") {
           const transcript = message.metadata?.transcript;
-          if (transcript && transcript.trim()) {
-            processTranscription(transcript, true);
+          const isFinal = message.message === "AddTranscript";
+          
+          let speakerId = "";
+          if (message.results && message.results.length > 0) {
+            for (const res of message.results) {
+              if (res.alternatives && res.alternatives[0]?.speaker) {
+                speakerId = res.alternatives[0].speaker;
+                break;
+              }
+            }
           }
-        } else if (message.message === "AddPartialTranscript") {
-          const transcript = message.metadata?.transcript;
+
           if (transcript && transcript.trim()) {
-            processTranscription(transcript, false);
+            processTranscription(transcript, isFinal, speakerId);
           }
         } else if (message.message === "Error") {
           console.error(`[Speechmatics] Error for ${userId}:`, JSON.stringify(message));
@@ -406,6 +419,7 @@ Context: ${contextStr}` },
           transcription_config: { 
             language: languageCode,
             operating_point: "standard",
+            diarization: "speaker",
             enable_partials: true,
             max_delay: 1.0,
             transcript_filtering_config: {
