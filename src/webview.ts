@@ -209,12 +209,12 @@ export function setupExpressRoutes(server: AppServer, internalEvents?: EventEmit
   // Handle Android App Control
   app.post(['/cycle-choice', '/android-control'], (req: Request, res: Response) => {
     const authReq = req as AuthenticatedRequest;
-    const { action, direction, userId: bodyUserId } = req.body;
+    const { action, direction, number, language, code, userId: bodyUserId } = req.body;
     const userId = authReq.authUserId || bodyUserId;
 
     if (userId && action && internalEvents) {
-      console.log(`[Android] User ${userId} action: ${action} ${direction || ''}`);
-      internalEvents.emit('android_control', { userId, action, direction });
+      console.log(`[Android] User ${userId} action: ${action} ${direction || ''}${number ? ` #${number}` : ''}${language ? ` -> ${language}` : ''}`);
+      internalEvents.emit('android_control', { userId, action, direction, number, language, code });
       res.status(200).json({ success: true });
     } else {
       res.status(400).json({ success: false, error: 'Missing userId or action' });

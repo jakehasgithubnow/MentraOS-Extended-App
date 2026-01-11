@@ -386,14 +386,35 @@ class ExampleMentraOSApp extends AppServer {
 
     internalEvents.on("user_selection", ({ userId: bid, selection }) => bid === userId && handleActionedSelection(selection));
     internalEvents.on("speech_finished", (bid) => bid === userId && (isSpeaking = false));
-    internalEvents.on("language_changed", async ({ userId: bid }) => {
+    internalEvents.on("language_changed", async ({ userId: bid, language, code }) => {
       if (bid !== userId) return;
-      if (smClient) await smClient.stopRecognition();
+
+      let state = globalState.get(userId);
+      if (!state) {
+        state = { lastText: "", lastTextTimestamp: 0, options: [], targetLanguage: "english", targetLanguageCode: "en" };
+        globalState.set(userId, state);
+      }
+
+      if (language && code) {
+        state.targetLanguage = language;
+        state.targetLanguageCode = code;
+        state.options = [];
+        state.lastText = "";
+        state.lastTextTimestamp = 0;
+        this.internalEvents.emit('state_updated', userId);
+        await safeShowText(`🌍 Language: ${language}`, 5000, true);
+      }
+
+      if (smClient) {
+        try {
+          await smClient.stopRecognition();
+        } catch (e) {}
+      }
       smClient = null; smClientActive = false; isRecordingActive = false;
       await startRecording();
     });
 
-    internalEvents.on("android_control", async ({ userId: bid, action, direction }) => {
+    internalEvents.on("android_control", async ({ userId: bid, action, direction, number, language, code }) => {
       if (bid !== userId || isSessionClosed) return;
       if (action === "cycle" && activeOptions.length > 0) {
         isSelectionStarted = true;
@@ -404,6 +425,13 @@ class ExampleMentraOSApp extends AppServer {
       } else if (action === "select") {
         if (activeOptions.length > 0) handleActionedSelection(activeOptions[isSelectionStarted ? currentIndex : 0].text);
         else if (!isGenerating) internalEvents.emit("generate_responses", userId);
+      } else if (action === "number" && number !== undefined) {
+        const idx = number - 1;
+        if (activeOptions.length > idx && idx >= 0) {
+          handleActionedSelection(activeOptions[idx].text);
+        }
+      } else if (action === "language") {
+        internalEvents.emit("language_changed", { userId, language, code });
       }
     });
 

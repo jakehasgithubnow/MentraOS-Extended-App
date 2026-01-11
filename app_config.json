@@ -48,16 +48,46 @@
     },
     {
       "id": "android_control",
-      "description": "Cycle or select the currently highlighted option (used by Android companion app)",
+      "description": "Cycle, select, number, or language change (used by Android companion app)",
       "activationPhrases": [],
       "parameters": {
         "action": {
           "type": "string",
-          "description": "cycle or select"
+          "description": "cycle, select, number, or language"
         },
         "direction": {
           "type": "string",
           "description": "up or down (only for cycle)"
+        },
+        "number": {
+          "type": "number",
+          "description": "The 1-based index of the option to select (only for number action)"
+        },
+        "language": {
+          "type": "string",
+          "description": "Language name (only for language action)"
+        },
+        "code": {
+          "type": "string",
+          "description": "Language code (only for language action)"
+        }
+      }
+    },
+    {
+      "id": "set_language",
+      "description": "Set the target language for transcription and translation",
+      "activationPhrases": [
+        "set language to",
+        "change language to"
+      ],
+      "parameters": {
+        "language": {
+          "type": "string",
+          "description": "The name of the language (e.g., Spanish, German)"
+        },
+        "code": {
+          "type": "string",
+          "description": "The ISO 639-1 language code (e.g., es, de)"
         }
       }
     }

@@ -53,8 +53,29 @@ export async function handleToolCall(
         return "Missing action";
       }
 
-      internalEvents.emit('android_control', { userId, action, direction });
-      return `Android control: ${action}${direction ? ` (${direction})` : ''}`;
+      const number = params.number as number | undefined;
+      const language = params.language as string | undefined;
+      const code = params.code as string | undefined;
+
+      internalEvents.emit('android_control', { userId, action, direction, number, language, code });
+      return `Android control: ${action}${direction ? ` (${direction})` : ''}${number ? ` #${number}` : ''}${language ? ` -> ${language}` : ''}`;
+    }
+    return "Internal event system not available.";
+  }
+
+  // Set language tool call
+  if (toolCall.toolId === "set_language") {
+    if (internalEvents) {
+      const params: any = (toolCall as any).parameters || (toolCall as any).args || {};
+      const language = params.language as string | undefined;
+      const code = params.code as string | undefined;
+
+      if (!language || !code) {
+        return "Missing language or code";
+      }
+
+      internalEvents.emit('language_changed', { userId, language, code });
+      return `Setting language to ${language} (${code})...`;
     }
     return "Internal event system not available.";
   }
